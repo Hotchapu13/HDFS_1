@@ -53,7 +53,7 @@ def handle_client(conn, addr):
                 chunk_allocations = []
                 for i in range(num_chunks):
                     chunk_id = f"{filename}_chunk_{i}"
-                    datanodes = allocate_datanodes()
+                    datanodes = allocate_datanodes()  # Function to select DataNodes
                     if not datanodes:
                         response = {"status": "error", "message": "Not enough DataNodes available"}
                         conn.sendall(len(json.dumps(response).encode()).to_bytes(4, byteorder='big') + json.dumps(response).encode())
@@ -75,6 +75,8 @@ def handle_client(conn, addr):
                     "status": "ok",
                     "chunk_allocations": chunk_allocations
                 }
+                print(f"[DEBUG] Chunk Allocations Sent to Client: {chunk_allocations}")
+                conn.sendall(len(json.dumps(response).encode()).to_bytes(4, byteorder='big') + json.dumps(response).encode())
 
             # Handle download request
             if message["action"] == "download":
@@ -111,11 +113,12 @@ def handle_client(conn, addr):
         print(f"[NameNode] Disconnected from {addr}")
 
 def allocate_datanodes():
-    """Allocate DataNodes for a chunk (replication factor = 3)."""
+    """Allocate DataNodes for a chunk (replication factor = 2)."""
     datanodes = list(DATANODE_STATUS.values())  # Get the list of available DataNodes
     if len(datanodes) < 2:
         print("[ERROR] Not enough DataNodes available for replication")
         return []  # Return an empty list if there aren't enough DataNodes
+    print(f"[DEBUG] Registered DataNodes: {DATANODE_STATUS}")
     return datanodes[:2]  # Select the first 3 DataNodes
 
 def start_server():

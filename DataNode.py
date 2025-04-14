@@ -15,15 +15,22 @@ HEARTBEAT_INTERVAL = 10  # Send heartbeat every 10 seconds
 # Ensure storage directory exists
 os.makedirs(STORAGE_DIR, exist_ok=True)
 
+def get_local_ip():
+    """Get the local IP address of the DataNode."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        s.connect(("8.8.8.8", 80))  # Connect to a public DNS server
+        return s.getsockname()[0]
+
 def send_heartbeat():
     """Send periodic heartbeats to the NameNode."""
+    datanode_ip = get_local_ip()  # Get the actual IP address
     while True:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect((NAMENODE_HOST, NAMENODE_PORT))
                 heartbeat_message = {
                     "action": "heartbeat",
-                    "datanode_host": DATANODE_HOST,
+                    "datanode_host": datanode_ip,  # Use the actual IP address
                     "datanode_port": DATANODE_PORT
                 }
                 data = json.dumps(heartbeat_message).encode()

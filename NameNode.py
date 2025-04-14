@@ -54,9 +54,13 @@ def handle_client(conn, addr):
                 for i in range(num_chunks):
                     chunk_id = f"{filename}_chunk_{i}"
                     datanodes = allocate_datanodes()  # Function to select DataNodes
+                    if not datanodes:
+                        response = {"status": "error", "message": "Not enough DataNodes available"}
+                        conn.sendall(len(json.dumps(response).encode()).to_bytes(4, byteorder='big') + json.dumps(response).encode())
+                        return
                     chunk_allocations.append({
                         "chunk_id": chunk_id,
-                        "datanodes": datanodes
+                        "datanodes": [{"host": dn["host"], "port": dn["port"]} for dn in datanodes]
                     })
                 
                 # Store file metadata
@@ -67,6 +71,7 @@ def handle_client(conn, addr):
                     }
                 save_metadata()
                 
+                print(f"[DEBUG] Chunk Allocations: {chunk_allocations}")
                 response = {
                     "status": "ok",
                     "chunk_allocations": chunk_allocations

@@ -156,6 +156,8 @@ class FileStorageClientGUI:
                         "num_chunks": num_chunks
                     })
                     
+                    print(f"[DEBUG] NameNode response: {response}")  # Add this line
+
                     if not response:
                         progress_window.destroy()
                         return
@@ -163,6 +165,12 @@ class FileStorageClientGUI:
                     if response.get("status") != "ok":
                         progress_window.destroy()
                         messagebox.showerror("Upload Error", response.get("message", "Unknown error"))
+                        return
+                    
+                    chunk_allocations = response.get("chunk_allocations", [])
+                    if not chunk_allocations or len(chunk_allocations) != num_chunks:
+                        progress_window.destroy()
+                        messagebox.showerror("Upload Error", "Invalid chunk allocation from NameNode")
                         return
                     
                     # Step 2: Get DataNode info for each chunk

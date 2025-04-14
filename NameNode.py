@@ -83,6 +83,19 @@ def handle_client(conn, addr):
                         }
                     else:
                         response = {"status": "error", "message": "File not found"}
+
+            # Handle heartbeat
+            if message["action"] == "heartbeat":
+                datanode_host = message["datanode_host"]
+                datanode_port = message["datanode_port"]
+                datanode_id = f"{datanode_host}:{datanode_port}"
+                DATANODE_STATUS[datanode_id] = {
+                    "host": datanode_host,
+                    "port": datanode_port,
+                    "last_heartbeat": time.time()
+                }
+                print(f"[DEBUG] Heartbeat received from {datanode_id}")
+                response = {"status": "success"}
             
             # Send response
             response_data = json.dumps(response).encode('utf-8')
@@ -96,6 +109,10 @@ def handle_client(conn, addr):
 def allocate_datanodes():
     """Allocate DataNodes for a chunk (replication factor = 3)."""
     datanodes = list(DATANODE_STATUS.keys())  # List of available DataNodes
+    if len(datanodes) < 3:
+        print("[ERROR] Not enough DataNodes available for replication")
+        return []  # Return an empty list if there aren't enough DataNodes
+    print(f"[DEBUG] Allocating DataNodes: {datanodes}")
     return [{"host": dn["host"], "port": dn["port"]} for dn in datanodes[:3]]  # Select 3 DataNodes
 
 def start_server():

@@ -78,6 +78,23 @@ def handle_client(conn, addr):
                 
                 print(f"[UPLOAD] Block {block_id} received and stored.")
                 response = {"status": "success", "message": f"Block {block_id} stored successfully"}
+            elif message["message_type"] == "file_chunk":
+                chunk_id = message["chunk_id"]
+                filename = os.path.join(STORAGE_DIR, chunk_id)
+                filesize = message["chunk_size"]
+                
+                # Receive the file data
+                with open(filename, 'wb') as f:
+                    bytes_received = 0
+                    while bytes_received < filesize:
+                        chunk = conn.recv(min(4096, filesize - bytes_received))
+                        if not chunk:
+                            raise ConnectionError("Client disconnected during file upload")
+                        f.write(chunk)
+                        bytes_received += len(chunk)
+                
+                print(f"[UPLOAD] Chunk {chunk_id} received and stored.")
+                response = {"status": "success", "message": f"Chunk {chunk_id} stored successfully"}
             elif message["message_type"] == "get_file":
                 chunk_id = message["chunk_id"]
                 filename = os.path.join(STORAGE_DIR, chunk_id)

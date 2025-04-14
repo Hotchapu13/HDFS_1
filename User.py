@@ -190,6 +190,7 @@ class FileStorageClientGUI:
                             # Upload to primary DataNode
                             primary = datanodes[0]
                             try:
+                                print(f"[DEBUG] Connecting to DataNode: {primary['host']}:{primary['port']}")
                                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                                     s.connect((primary['host'], primary['port']))
                                     # Send metadata
@@ -213,9 +214,8 @@ class FileStorageClientGUI:
                                         raise Exception(f"Chunk {i} upload failed: {resp}")
                             
                             except Exception as e:
-                                progress_window.destroy()
-                                messagebox.showerror("Upload Error", f"Failed to upload chunk {i} to datanode: {e}")
-                                return
+                                print(f"[ERROR] Failed to upload chunk {i} to DataNode: {e}")
+                                raise
                             
                             # Update progress
                             progress_window.after(0, lambda: progress.config(value=((i + 1) / num_chunks) * 100))

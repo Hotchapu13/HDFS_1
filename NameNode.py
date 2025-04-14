@@ -113,10 +113,10 @@ def handle_client(conn, addr):
 def allocate_datanodes():
     """Allocate DataNodes for a chunk (replication factor = 3)."""
     datanodes = list(DATANODE_STATUS.values())  # Get the list of available DataNodes
-    if len(datanodes) < 3:
+    if len(datanodes) < 2:
         print("[ERROR] Not enough DataNodes available for replication")
         return []  # Return an empty list if there aren't enough DataNodes
-    return datanodes[:3]  # Select the first 3 DataNodes
+    return datanodes[:2]  # Select the first 3 DataNodes
 
 def start_server():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

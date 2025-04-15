@@ -155,7 +155,7 @@ class FileStorageClientGUI:
                         "num_chunks": num_chunks
                     })
                     
-                    print(f"[DEBUG] NameNode response: {response}")  # Add this line
+                    print(f"[DEBUG] NameNode response: {response}")
 
                     if not response:
                         progress_window.destroy()
@@ -174,25 +174,18 @@ class FileStorageClientGUI:
                     
                     print(f"[DEBUG] Chunk Allocations Sent to Client: {chunk_allocations}")
 
-                    # Step 2: Get DataNode info for each chunk
-                    chunk_allocations = response.get("chunk_allocations", [])
-                    if not chunk_allocations or len(chunk_allocations) != num_chunks:
-                        progress_window.destroy()
-                        messagebox.showerror("Upload Error", "Invalid chunk allocation from NameNode")
-                        return
-                    
-                    # Step 3: Upload each chunk to the assigned DataNodes
+                    # Step 2: Upload each chunk to the assigned DataNodes
                     with open(path, 'rb') as f:
                         for i, allocation in enumerate(chunk_allocations):
                             chunk_data = f.read(chunk_size)
                             chunk_id = allocation["chunk_id"]
                             datanodes = allocation["datanodes"]
                             
-                            for datanode in datanodes:  # Iterate over all assigned DataNodes
+                            for datanode in datanodes:
                                 try:
                                     print(f"[DEBUG] Connecting to DataNode: {datanode['host']}:{datanode['port']}")
                                     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                                        s.settimeout(20)  # Set a 20-second timeout
+                                        s.settimeout(20)
                                         s.connect((datanode['host'], datanode['port']))
                                         
                                         # Send metadata
@@ -204,9 +197,9 @@ class FileStorageClientGUI:
                                             "chunk_size": len(chunk_data)
                                         }).encode()
                                         
-                                        s.sendall(len(metadata).to_bytes(4, byteorder='big'))  # Send metadata length
-                                        s.sendall(metadata)  # Send metadata
-                                        s.sendall(chunk_data)  # Send chunk data
+                                        s.sendall(len(metadata).to_bytes(4, byteorder='big'))
+                                        s.sendall(metadata)
+                                        s.sendall(chunk_data)
                                         
                                         # Get confirmation
                                         resp_len = int.from_bytes(s.recv(4), byteorder='big')
@@ -218,11 +211,8 @@ class FileStorageClientGUI:
                                 except Exception as e:
                                     print(f"[ERROR] Failed to upload chunk {i} to DataNode {datanode['host']}:{datanode['port']}: {e}")
                                     raise
-                            
-                            # Update progress
-                            progress_window.after(0, lambda: progress.config(value=((i + 1) / num_chunks) * 100))
                     
-                    # Step 4: Confirm upload with NameNode
+                    # Step 3: Confirm upload with NameNode
                     confirmation = self.send_request({
                         "action": "upload_complete",
                         "filename": name,
@@ -231,11 +221,7 @@ class FileStorageClientGUI:
                     
                     print(f"[DEBUG] Upload confirmation response: {confirmation}")
 
-                    # Close progress dialog
-                    progress_window.destroy()
-                    
                     if confirmation and confirmation.get("status") == "ok":
-                        # Add to history list
                         self.upload_history.append((name, "File", file_size // 1024))
                         self.history_tree.insert("", tk.END, values=(name, "File", file_size // 1024))
                         messagebox.showinfo("Upload", f"'{name}' uploaded successfully.")
@@ -243,8 +229,10 @@ class FileStorageClientGUI:
                         messagebox.showerror("Upload Error", "Failed to confirm upload with NameNode")
                 
                 except Exception as e:
-                    progress_window.destroy()
+                    print(f"[ERROR] An error occurred during upload: {e}")
                     messagebox.showerror("Upload Error", f"An error occurred: {str(e)}")
+                finally:
+                    progress_window.destroy()
             
             # Start upload thread
             threading.Thread(target=do_upload, daemon=True).start()

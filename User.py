@@ -192,6 +192,7 @@ class FileStorageClientGUI:
                             try:
                                 print(f"[DEBUG] Connecting to DataNode: {primary['host']}:{primary['port']}")
                                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                                    s.settimeout(20)  # Set a 20-second timeout
                                     s.connect((primary['host'], primary['port']))
                                     # Send metadata
                                     metadata = json.dumps({

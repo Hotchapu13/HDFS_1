@@ -85,15 +85,14 @@ class FileStorageClientGUI:
             
             # Create a new connection
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(10)  # 10 second timeout
+                s.settimeout(10)  # 10-second timeout
                 s.connect((NAMENODE_HOST, NAMENODE_PORT))
                 
                 # Send the message
+                print(f"[DEBUG] Sending request to NameNode: {message}")
                 data = json.dumps(message).encode()
-                # Send length prefix (4 bytes)
-                s.sendall(len(data).to_bytes(4, byteorder='big'))
-                # Then send the message
-                s.sendall(data)
+                s.sendall(len(data).to_bytes(4, byteorder='big'))  # Send length prefix
+                s.sendall(data)  # Send the message
                 
                 # Receive response length
                 length_bytes = s.recv(4)
@@ -173,6 +172,8 @@ class FileStorageClientGUI:
                         messagebox.showerror("Upload Error", "Invalid chunk allocation from NameNode")
                         return
                     
+                    print(f"[DEBUG] Chunk Allocations Sent to Client: {chunk_allocations}")
+
                     # Step 2: Get DataNode info for each chunk
                     chunk_allocations = response.get("chunk_allocations", [])
                     if not chunk_allocations or len(chunk_allocations) != num_chunks:
@@ -187,36 +188,36 @@ class FileStorageClientGUI:
                             chunk_id = allocation["chunk_id"]
                             datanodes = allocation["datanodes"]
                             
-                            # Upload to primary DataNode
-                            primary = datanodes[0]
-                            try:
-                                print(f"[DEBUG] Connecting to DataNode: {primary['host']}:{primary['port']}")
-                                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                                    s.settimeout(20)  # Set a 20-second timeout
-                                    s.connect((primary['host'], primary['port']))
-                                    # Send metadata
-                                    metadata = json.dumps({
-                                        "message_type": "file_chunk",
-                                        "chunk_id": chunk_id,
-                                        "filename": name,
-                                        "chunk_index": i,
-                                        "chunk_size": len(chunk_data)
-                                    }).encode()
-                                    
-                                    s.sendall(len(metadata).to_bytes(4, byteorder='big'))  # Send metadata length
-                                    s.sendall(metadata)  # Send metadata
-                                    s.sendall(chunk_data)  # Send chunk data
-                                    
-                                    # Get confirmation
-                                    resp_len = int.from_bytes(s.recv(4), byteorder='big')
-                                    resp = s.recv(resp_len).decode()
-                                    
-                                    if "success" not in resp.lower():
-                                        raise Exception(f"Chunk {i} upload failed: {resp}")
-                            
-                            except Exception as e:
-                                print(f"[ERROR] Failed to upload chunk {i} to DataNode: {e}")
-                                raise
+                            for datanode in datanodes:  # Iterate over all assigned DataNodes
+                                try:
+                                    print(f"[DEBUG] Connecting to DataNode: {datanode['host']}:{datanode['port']}")
+                                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                                        s.settimeout(20)  # Set a 20-second timeout
+                                        s.connect((datanode['host'], datanode['port']))
+                                        
+                                        # Send metadata
+                                        metadata = json.dumps({
+                                            "message_type": "file_chunk",
+                                            "chunk_id": chunk_id,
+                                            "filename": name,
+                                            "chunk_index": i,
+                                            "chunk_size": len(chunk_data)
+                                        }).encode()
+                                        
+                                        s.sendall(len(metadata).to_bytes(4, byteorder='big'))  # Send metadata length
+                                        s.sendall(metadata)  # Send metadata
+                                        s.sendall(chunk_data)  # Send chunk data
+                                        
+                                        # Get confirmation
+                                        resp_len = int.from_bytes(s.recv(4), byteorder='big')
+                                        resp = s.recv(resp_len).decode()
+                                        
+                                        if "success" not in resp.lower():
+                                            raise Exception(f"Chunk {i} upload failed to DataNode {datanode['host']}:{datanode['port']}: {resp}")
+                                
+                                except Exception as e:
+                                    print(f"[ERROR] Failed to upload chunk {i} to DataNode {datanode['host']}:{datanode['port']}: {e}")
+                                    raise
                             
                             # Update progress
                             progress_window.after(0, lambda: progress.config(value=((i + 1) / num_chunks) * 100))

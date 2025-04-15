@@ -227,6 +227,8 @@ class FileStorageClientGUI:
                         "filesize": file_size
                     })
                     
+                    print(f"[DEBUG] Upload confirmation response: {confirmation}")
+
                     # Close progress dialog
                     progress_window.destroy()
                     

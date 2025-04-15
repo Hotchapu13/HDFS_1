@@ -90,6 +90,22 @@ def handle_client(conn, addr):
                     else:
                         response = {"status": "error", "message": "File not found"}
 
+            # Handle upload complete request
+            if message["action"] == "upload_complete":
+                filename = message["filename"]
+                filesize = message["filesize"]
+                
+                print(f"[DEBUG] Received upload_complete request: {message}")
+                print(f"[DEBUG] Current FILE_METADATA: {FILE_METADATA}")
+                
+                with metadata_lock:
+                    if filename in FILE_METADATA:
+                        FILE_METADATA[filename]["status"] = "complete"
+                        save_metadata()
+                        response = {"status": "ok", "message": f"Upload of {filename} confirmed"}
+                    else:
+                        response = {"status": "error", "message": "File metadata not found"}
+
             # Handle heartbeat
             if message["action"] == "heartbeat":
                 datanode_host = message["datanode_host"]
